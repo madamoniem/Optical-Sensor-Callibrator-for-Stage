@@ -125,9 +125,10 @@ class ZaberMultistaticStage:
         self.port.close() 
 
 class Zaber_2axis_LST1500D:
-    def __init__(self, port: str = 'COM8'):
+    def __init__(self, port: str = 'COM8', maxspeed=150):
         self.ser=serial.Serial()
         self.ser.port=port
+        self.maxspeed = maxspeed
         self.ser.timeout = 1
         self.ser.baudrate=115200
         self.ser.open()
@@ -137,8 +138,14 @@ class Zaber_2axis_LST1500D:
         self.x_axis = '1'    
         self.y_axis = '2'
         
-        self.step_size=1.984375*10**(-3) #convert to mm units
-    
+        self.step_size = 1.984375 *10**(-3) #convert to mm units
+        self.velocity_conversion = 1.6384   #conversion factor for velocity, in seconds
+        velocity_in_motor_speed = int(round(self.maxspeed * self.velocity_conversion/self.step_size, 0))
+        self.ser.write(f'/{self.x_axis} set maxspeed {velocity_in_motor_speed}\r'.encode())
+        dummy_reply=self.ser.read_until()
+        self.ser.write(f'/{self.y_axis} set maxspeed {velocity_in_motor_speed}\r'.encode())
+        dummy_reply=self.ser.read_until()
+
     def wait_for_idle_status(self):
         
         #test that x-axis has finished moving
@@ -166,25 +173,23 @@ class Zaber_2axis_LST1500D:
             sleep(.1) #set for long settle time
         
     def home_axes(self):
-
         self.ser.write('/0 home\r'.encode())
         dummy_reply=self.ser.read_until() #throw away response so wait for stage command works properly
         dummy_reply=self.ser.read_until() #throw away response so wait for stage command works properly
         self.wait_for_idle_status()
 
     def move_x_absolute(self, position, quiet=True): #input in mm
-        position_in_motor_steps =int(round(position/self.step_size,0))
+        position_in_motor_steps =int(round(position/self.step_size, 0))
         self.ser.write(f'/{self.x_axis} move abs {position_in_motor_steps}\r'.encode() )
         dummy_reply=self.ser.read_until() #throw away response so wait for stage command works properly
         if not quiet:
             print(f'set x_position= {position:.6g}')
             print(f'set x_position in steps= {position_in_motor_steps:.12g}')
         self.wait_for_idle_status()
-
         
     def move_y_absolute(self, position, quiet=True): #input in mm
         #note accounting for negative axis by subtracting 1500 mm
-        position_in_motor_steps =int(round((position)/self.step_size,0))
+        position_in_motor_steps =int(round(position/self.step_size, 0))
         self.ser.write(f'/{self.y_axis} move abs {position_in_motor_steps}\r'.encode())
         dummy_reply=self.ser.read_until() #throw away response so wait for stage command works properly
         if not quiet:
