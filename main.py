@@ -22,7 +22,7 @@ class ArduinoReader:
                     parts = line.split(',')
                     if len(parts) == 2:
                         # Parse and assign the values correctly
-                        x_part, y_part = parts
+                        y_part, x_part = parts  # Switch x_part and y_part here
                         if ':' in x_part and ':' in y_part:
                             _, x_val = x_part.split(':')
                             _, y_val = y_part.split(':')
@@ -33,7 +33,7 @@ class ArduinoReader:
             self.ser.close()
 
     def distanceSinceInit(self):
-        return self.total_X, self.total_Y
+        return self.total_Y, self.total_X  # Switch X and Y here
 
     def reset(self):
         self.ser.write(b'R')  # send reset signal to Arduino
